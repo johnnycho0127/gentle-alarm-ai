@@ -144,32 +144,9 @@ function Index() {
             <span className="text-xs font-medium text-brand-deep">매일 반복</span>
           </div>
           <div className="mt-4 flex items-end justify-center gap-3">
-            {[
-              { value: hour, step: stepHour },
-              { value: minute, step: stepMinute },
-            ].map((unit, i) => (
-              <div key={i} className="flex flex-col items-center">
-                <button
-                  onClick={() => unit.step(1)}
-                  aria-label="증가"
-                  className="mb-1 grid size-7 place-items-center rounded-full bg-white/60 text-ink/40 ring-1 ring-white/70 transition-colors hover:bg-white/80"
-                >
-                  <ChevronUp className="size-4" />
-                </button>
-                <div className="grid size-20 place-items-center rounded-2xl bg-white/70 ring-1 ring-white/70">
-                  <span className="font-display text-5xl font-semibold leading-none tabular-nums">
-                    {pad(unit.value)}
-                  </span>
-                </div>
-                <button
-                  onClick={() => unit.step(-1)}
-                  aria-label="감소"
-                  className="mt-1 grid size-7 place-items-center rounded-full bg-white/60 text-ink/40 ring-1 ring-white/70 transition-colors hover:bg-white/80"
-                >
-                  <ChevronDown className="size-4" />
-                </button>
-              </div>
-            )).reduce<React.ReactNode[]>((acc, el, i) => (i === 0 ? [el] : [...acc, <span key="colon" className="pb-16 font-display text-4xl font-semibold text-brand">:</span>, el]), [])}
+            <TimeUnit value={hour} onStep={stepHour} />
+            <span className="pb-5 font-display text-4xl font-semibold text-brand">:</span>
+            <TimeUnit value={minute} onStep={stepMinute} />
           </div>
         </div>
 
