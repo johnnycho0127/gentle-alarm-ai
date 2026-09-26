@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Phone, PhoneOff, X } from "lucide-react";
+import { Bird, ChevronDown, ChevronUp, Phone, PhoneOff, X } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,32 +16,9 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Tone = "friend" | "drill" | "anchor";
 type Screen = "main" | "incoming" | "incall";
 
-const TONES: { id: Tone; label: string; pitch: number; rate: number; message: string }[] = [
-  {
-    id: "friend",
-    label: "Friendly Buddy",
-    pitch: 1.1,
-    rate: 1.0,
-    message: "Good morning! It's your wake-up time. I'm cheering for your awesome day ahead!",
-  },
-  {
-    id: "drill",
-    label: "Strict Sergeant",
-    pitch: 0.7,
-    rate: 1.15,
-    message: "Rise and shine! It's your wake-up time. I'm cheering for your awesome day ahead!",
-  },
-  {
-    id: "anchor",
-    label: "Cheerful Anchor",
-    pitch: 1.3,
-    rate: 1.1,
-    message: "Good morning! It's your wake-up time. I'm cheering for your awesome day ahead!",
-  },
-];
+const BIRDS_URL = "/morning-birds.mp3";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -73,10 +50,10 @@ function Index() {
   const [screen, setScreen] = useState<Screen>("main");
   const [hour, setHour] = useState(7);
   const [minute, setMinute] = useState(30);
-  const [tone, setTone] = useState<Tone>("friend");
   const [saved, setSaved] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     try {
@@ -85,48 +62,45 @@ function Index() {
         const a = JSON.parse(raw);
         if (typeof a.hour === "number") setHour(a.hour);
         if (typeof a.minute === "number") setMinute(a.minute);
-        if (a.tone) setTone(a.tone);
       }
     } catch {}
   }, []);
 
+  const stopBirds = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      window.speechSynthesis?.cancel();
+      stopBirds();
     };
   }, []);
-
-  const speak = (t: Tone) => {
-    const cfg = TONES.find((x) => x.id === t)!;
-    window.speechSynthesis?.cancel();
-    const u = new SpeechSynthesisUtterance(cfg.message);
-    u.lang = "en-US";
-    u.pitch = cfg.pitch;
-    u.rate = cfg.rate;
-    const enVoice = window.speechSynthesis
-      ?.getVoices()
-      .find((v) => v.lang.startsWith("en"));
-    if (enVoice) u.voice = enVoice;
-    window.speechSynthesis?.speak(u);
-  };
 
   const startCall = () => {
     setScreen("incall");
     setElapsed(0);
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
-    speak(tone);
+    const audio = new Audio(BIRDS_URL);
+    audio.loop = true;
+    audio.volume = 0.9;
+    audioRef.current = audio;
+    audio.play().catch(() => {});
   };
 
   const endCall = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
-    window.speechSynthesis?.cancel();
+    stopBirds();
     setScreen("main");
   };
 
   const saveAlarm = () => {
-    localStorage.setItem("wakeup-alarm", JSON.stringify({ hour, minute, tone }));
+    localStorage.setItem("wakeup-alarm", JSON.stringify({ hour, minute }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -174,26 +148,14 @@ function Index() {
           </div>
         </div>
 
-        {/* voice tone */}
-        <div className="mt-6">
-          <span className="text-xs font-semibold uppercase tracking-[0.15em] text-ink/40">Voice Tone</span>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {TONES.map((t, i) => (
-              <button
-                key={t.id}
-                onClick={() => setTone(t.id)}
-                className={
-                  tone === t.id
-                    ? "rounded-2xl bg-brand p-3 text-left text-primary-foreground ring-1 ring-brand/40 transition-all"
-                    : "rounded-2xl bg-white/45 p-3 text-left ring-1 ring-white/60 backdrop-blur-md transition-all hover:bg-white/60"
-                }
-              >
-                <span className={`block text-xs font-medium ${tone === t.id ? "opacity-80" : "text-ink/40"}`}>
-                  Tone {pad(i + 1)}
-                </span>
-                <span className="mt-1 block text-sm font-semibold leading-tight">{t.label}</span>
-              </button>
-            ))}
+        {/* wake-up sound */}
+        <div className="mt-6 flex items-center gap-3 rounded-2xl bg-white/45 p-4 ring-1 ring-white/60 backdrop-blur-md">
+          <div className="grid size-10 place-items-center rounded-xl bg-brand/15">
+            <Bird className="size-5 text-brand" />
+          </div>
+          <div>
+            <span className="block text-xs font-semibold uppercase tracking-[0.15em] text-ink/40">Wake-up Sound</span>
+            <span className="mt-0.5 block text-sm font-semibold">Morning Birds</span>
           </div>
         </div>
 
@@ -274,7 +236,7 @@ function Index() {
           ) : (
             <div className="flex flex-col items-center gap-6 px-8 pb-16">
               <p className="max-w-xs text-center text-sm leading-relaxed text-white/60">
-                "{TONES.find((t) => t.id === tone)!.message}"
+                Good morning! The birds are singing — time to rise and shine.
               </p>
               <button
                 onClick={endCall}
