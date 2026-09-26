@@ -16,32 +16,9 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Tone = "friend" | "drill" | "anchor";
 type Screen = "main" | "incoming" | "incall";
 
-const TONES: { id: Tone; label: string; pitch: number; rate: number; message: string }[] = [
-  {
-    id: "friend",
-    label: "Friendly Buddy",
-    pitch: 1.1,
-    rate: 1.0,
-    message: "Good morning! It's your wake-up time. I'm cheering for your awesome day ahead!",
-  },
-  {
-    id: "drill",
-    label: "Strict Sergeant",
-    pitch: 0.7,
-    rate: 1.15,
-    message: "Rise and shine! It's your wake-up time. I'm cheering for your awesome day ahead!",
-  },
-  {
-    id: "anchor",
-    label: "Cheerful Anchor",
-    pitch: 1.3,
-    rate: 1.1,
-    message: "Good morning! It's your wake-up time. I'm cheering for your awesome day ahead!",
-  },
-];
+const BIRDS_URL = "/morning-birds.mp3";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
