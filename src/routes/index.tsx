@@ -148,26 +148,14 @@ function Index() {
           </div>
         </div>
 
-        {/* voice tone */}
-        <div className="mt-6">
-          <span className="text-xs font-semibold uppercase tracking-[0.15em] text-ink/40">Voice Tone</span>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {TONES.map((t, i) => (
-              <button
-                key={t.id}
-                onClick={() => setTone(t.id)}
-                className={
-                  tone === t.id
-                    ? "rounded-2xl bg-brand p-3 text-left text-primary-foreground ring-1 ring-brand/40 transition-all"
-                    : "rounded-2xl bg-white/45 p-3 text-left ring-1 ring-white/60 backdrop-blur-md transition-all hover:bg-white/60"
-                }
-              >
-                <span className={`block text-xs font-medium ${tone === t.id ? "opacity-80" : "text-ink/40"}`}>
-                  Tone {pad(i + 1)}
-                </span>
-                <span className="mt-1 block text-sm font-semibold leading-tight">{t.label}</span>
-              </button>
-            ))}
+        {/* wake-up sound */}
+        <div className="mt-6 flex items-center gap-3 rounded-2xl bg-white/45 p-4 ring-1 ring-white/60 backdrop-blur-md">
+          <div className="grid size-10 place-items-center rounded-xl bg-brand/15">
+            <Bird className="size-5 text-brand" />
+          </div>
+          <div>
+            <span className="block text-xs font-semibold uppercase tracking-[0.15em] text-ink/40">Wake-up Sound</span>
+            <span className="mt-0.5 block text-sm font-semibold">Morning Birds</span>
           </div>
         </div>
 
