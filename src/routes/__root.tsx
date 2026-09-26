@@ -77,8 +77,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "WakeUp AI — AI 모닝콜" },
-      { name: "description", content: "알람을 전화로 맞는 AI 모닝콜 앱" },
+      { title: "WakeUp AI — AI Morning Call" },
+      { name: "description", content: "An AI morning call app that wakes you up with a phone call" },
     ],
     links: [
       {
