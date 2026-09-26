@@ -5,10 +5,10 @@ import { ChevronDown, ChevronUp, Phone, PhoneOff, X } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "WakeUp AI — AI 모닝콜" },
-      { name: "description", content: "알람을 전화로 맞는 AI 모닝콜 앱. 원하는 시간과 목소리 톤을 설정하세요." },
-      { property: "og:title", content: "WakeUp AI — AI 모닝콜" },
-      { property: "og:description", content: "알람을 전화로 맞는 AI 모닝콜 앱. 원하는 시간과 목소리 톤을 설정하세요." },
+      { title: "WakeUp AI — AI Morning Call" },
+      { name: "description", content: "An AI morning call app that wakes you up with a phone call. Set your time and voice tone." },
+      { property: "og:title", content: "WakeUp AI — AI Morning Call" },
+      { property: "og:description", content: "An AI morning call app that wakes you up with a phone call. Set your time and voice tone." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -22,24 +22,24 @@ type Screen = "main" | "incoming" | "incall";
 const TONES: { id: Tone; label: string; pitch: number; rate: number; message: string }[] = [
   {
     id: "friend",
-    label: "다정한 친구",
+    label: "Friendly Buddy",
     pitch: 1.1,
     rate: 1.0,
-    message: "좋은 아침이에요! 지금은 설정하신 시간입니다. 오늘 하루도 당신의 멋진 도전을 응원해요!",
+    message: "Good morning! It's your wake-up time. I'm cheering for your awesome day ahead!",
   },
   {
     id: "drill",
-    label: "엄격한 교관",
+    label: "Strict Sergeant",
     pitch: 0.7,
     rate: 1.15,
-    message: "기상하십시오! 지금은 설정하신 시간입니다. 오늘 하루도 당신의 멋진 도전을 응원합니다!",
+    message: "Rise and shine! It's your wake-up time. I'm cheering for your awesome day ahead!",
   },
   {
     id: "anchor",
-    label: "밝은 아나운서",
+    label: "Cheerful Anchor",
     pitch: 1.3,
     rate: 1.1,
-    message: "좋은 아침입니다! 지금은 설정하신 시간입니다. 오늘 하루도 당신의 멋진 도전을 응원합니다!",
+    message: "Good morning! It's your wake-up time. I'm cheering for your awesome day ahead!",
   },
 ];
 
@@ -50,7 +50,7 @@ function TimeUnit({ value, onStep }: { value: number; onStep: (d: number) => voi
     <div className="flex flex-col items-center">
       <button
         onClick={() => onStep(1)}
-        aria-label="증가"
+        aria-label="Increase"
         className="mb-1 grid size-7 place-items-center rounded-full bg-white/60 text-ink/40 ring-1 ring-white/70 transition-colors hover:bg-white/80"
       >
         <ChevronUp className="size-4" />
@@ -60,7 +60,7 @@ function TimeUnit({ value, onStep }: { value: number; onStep: (d: number) => voi
       </div>
       <button
         onClick={() => onStep(-1)}
-        aria-label="감소"
+        aria-label="Decrease"
         className="mt-1 grid size-7 place-items-center rounded-full bg-white/60 text-ink/40 ring-1 ring-white/70 transition-colors hover:bg-white/80"
       >
         <ChevronDown className="size-4" />
@@ -101,13 +101,13 @@ function Index() {
     const cfg = TONES.find((x) => x.id === t)!;
     window.speechSynthesis?.cancel();
     const u = new SpeechSynthesisUtterance(cfg.message);
-    u.lang = "ko-KR";
+    u.lang = "en-US";
     u.pitch = cfg.pitch;
     u.rate = cfg.rate;
-    const koVoice = window.speechSynthesis
+    const enVoice = window.speechSynthesis
       ?.getVoices()
-      .find((v) => v.lang.startsWith("ko"));
-    if (koVoice) u.voice = koVoice;
+      .find((v) => v.lang.startsWith("en"));
+    if (enVoice) u.voice = enVoice;
     window.speechSynthesis?.speak(u);
   };
 
@@ -150,22 +150,22 @@ function Index() {
             <span className="font-display text-lg font-semibold tracking-tight">WakeUp AI</span>
           </div>
           <span className="rounded-full bg-white/50 px-3 py-1 text-xs font-medium text-brand-deep ring-1 ring-white/60 backdrop-blur-md">
-            모닝콜
+            Morning Call
           </span>
         </div>
 
         <div className="mt-10">
-          <p className="text-sm font-medium text-ink/50">오늘 아침을 깨워드릴게요</p>
+          <p className="text-sm font-medium text-ink/50">We'll wake you up this morning</p>
           <h1 className="mt-1 font-display text-3xl font-semibold leading-tight tracking-tight text-balance">
-            알람을 <span className="text-brand">전화</span>로 맞게요
+            Wake up to a <span className="text-brand">phone call</span>
           </h1>
         </div>
 
         {/* time picker */}
         <div className="mt-8 rounded-3xl bg-white/45 p-6 ring-1 ring-white/60 backdrop-blur-xl">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-[0.15em] text-ink/40">알람 시간</span>
-            <span className="text-xs font-medium text-brand-deep">매일 반복</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.15em] text-ink/40">Alarm Time</span>
+            <span className="text-xs font-medium text-brand-deep">Repeats daily</span>
           </div>
           <div className="mt-4 flex items-end justify-center gap-3">
             <TimeUnit value={hour} onStep={stepHour} />
@@ -176,7 +176,7 @@ function Index() {
 
         {/* voice tone */}
         <div className="mt-6">
-          <span className="text-xs font-semibold uppercase tracking-[0.15em] text-ink/40">목소리 톤</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.15em] text-ink/40">Voice Tone</span>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {TONES.map((t, i) => (
               <button
@@ -189,7 +189,7 @@ function Index() {
                 }
               >
                 <span className={`block text-xs font-medium ${tone === t.id ? "opacity-80" : "text-ink/40"}`}>
-                  톤 {pad(i + 1)}
+                  Tone {pad(i + 1)}
                 </span>
                 <span className="mt-1 block text-sm font-semibold leading-tight">{t.label}</span>
               </button>
@@ -201,7 +201,7 @@ function Index() {
           onClick={saveAlarm}
           className="mt-6 w-full rounded-2xl bg-ink py-4 text-sm font-semibold text-primary-foreground ring-1 ring-ink/10 transition-opacity hover:opacity-90"
         >
-          {saved ? `저장됨 · ${pad(hour)}:${pad(minute)}` : "알람 저장"}
+          {saved ? `Saved · ${pad(hour)}:${pad(minute)}` : "Save Alarm"}
         </button>
 
         <button
@@ -212,7 +212,7 @@ function Index() {
             <span className="absolute inset-0 rounded-full bg-brand/40 animate-ripple" />
             <Phone className="relative size-4 text-brand" />
           </span>
-          전화 수신 테스트
+          Test Incoming Call
         </button>
       </div>
 
@@ -237,12 +237,12 @@ function Index() {
                 <span className="font-display text-4xl font-semibold">AI</span>
               </div>
             </div>
-            <p className="mt-8 text-sm font-medium uppercase tracking-[0.2em] text-white/60">AI 모닝콜</p>
+            <p className="mt-8 text-sm font-medium uppercase tracking-[0.2em] text-white/60">AI Morning Call</p>
             <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight">WakeUp AI</h2>
             <p className="mt-1 text-sm text-white/50">
               {screen === "incoming"
-                ? "전화 수신 중..."
-                : `통화 중 (${pad(Math.floor(elapsed / 60))}:${pad(elapsed % 60)})`}
+                ? "Incoming call..."
+                : `On call (${pad(Math.floor(elapsed / 60))}:${pad(elapsed % 60)})`}
             </p>
           </div>
 
@@ -252,22 +252,22 @@ function Index() {
                 <div className="flex flex-col items-center gap-2">
                   <button
                     onClick={startCall}
-                    aria-label="전화 받기"
+                    aria-label="Answer call"
                     className="grid size-16 place-items-center rounded-full bg-accept text-primary-foreground ring-1 ring-accept/40 transition-transform hover:scale-105"
                   >
                     <Phone className="size-6" />
                   </button>
-                  <span className="text-xs font-medium text-white/70">받기</span>
+                  <span className="text-xs font-medium text-white/70">Answer</span>
                 </div>
                 <div className="flex flex-col items-center gap-2">
                   <button
                     onClick={endCall}
-                    aria-label="거절"
+                    aria-label="Decline call"
                     className="grid size-16 place-items-center rounded-full bg-decline text-primary-foreground ring-1 ring-decline/40 transition-transform hover:scale-105"
                   >
                     <X className="size-6" />
                   </button>
-                  <span className="text-xs font-medium text-white/70">거절</span>
+                  <span className="text-xs font-medium text-white/70">Decline</span>
                 </div>
               </div>
             </div>
@@ -281,7 +281,7 @@ function Index() {
                 className="flex items-center gap-2 rounded-full bg-decline px-8 py-3.5 text-sm font-semibold text-primary-foreground ring-1 ring-decline/40 transition-transform hover:scale-105"
               >
                 <PhoneOff className="size-4" />
-                통화 종료
+                End Call
               </button>
             </div>
           )}
