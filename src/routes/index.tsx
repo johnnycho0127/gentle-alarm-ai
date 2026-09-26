@@ -45,6 +45,30 @@ const TONES: { id: Tone; label: string; pitch: number; rate: number; message: st
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+function TimeUnit({ value, onStep }: { value: number; onStep: (d: number) => void }) {
+  return (
+    <div className="flex flex-col items-center">
+      <button
+        onClick={() => onStep(1)}
+        aria-label="증가"
+        className="mb-1 grid size-7 place-items-center rounded-full bg-white/60 text-ink/40 ring-1 ring-white/70 transition-colors hover:bg-white/80"
+      >
+        <ChevronUp className="size-4" />
+      </button>
+      <div className="grid size-20 place-items-center rounded-2xl bg-white/70 ring-1 ring-white/70">
+        <span className="font-display text-5xl font-semibold leading-none tabular-nums">{pad(value)}</span>
+      </div>
+      <button
+        onClick={() => onStep(-1)}
+        aria-label="감소"
+        className="mt-1 grid size-7 place-items-center rounded-full bg-white/60 text-ink/40 ring-1 ring-white/70 transition-colors hover:bg-white/80"
+      >
+        <ChevronDown className="size-4" />
+      </button>
+    </div>
+  );
+}
+
 function Index() {
   const [screen, setScreen] = useState<Screen>("main");
   const [hour, setHour] = useState(7);
