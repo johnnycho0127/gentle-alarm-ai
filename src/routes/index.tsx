@@ -1,358 +1,209 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  LoaderCircle,
-  Mic2,
-  Phone,
-  PhoneOff,
-  RefreshCw,
-  Sparkles,
-  Sun,
-  X,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect, useRef } from 'react';
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "WakeUp AI — AI Morning Call" },
-      { name: "description", content: "An AI morning call app that wakes you up with a phone call. Set your time and voice tone." },
-      { property: "og:title", content: "WakeUp AI — AI Morning Call" },
-      { property: "og:description", content: "An AI morning call app that wakes you up with a phone call. Set your time and voice tone." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: Index,
-});
+export default function Index() {
+  const [alarmTime, setAlarmTime] = useState('07:00');
+  const [selectedSoundType, setSelectedSoundType] = useState<'recorded' | 'nature'>('recorded');
+  const [natureSound, setNatureSound] = useState('birds');
+  const [isAlarmActive, setIsAlarmActive] = useState(false);
+  const [inCall, setInCall] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
 
-type Screen = "main" | "incoming" | "incall";
-type VoiceId = "warm" | "energetic" | "calm";
-type AudioStatus = "idle" | "generating" | "playing" | "error";
+  // Audio Recording States
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const playbackAudioRef = useRef<HTMLAudioElement | null>(null);
 
-const VOICES: Array<{
-  id: VoiceId;
-  name: string;
-  description: string;
-  icon: typeof Sparkles;
-}> = [
-  { id: "warm", name: "Warm Friend", description: "Gentle and encouraging", icon: Sparkles },
-  { id: "energetic", name: "Energetic Coach", description: "Bright and motivating", icon: Sun },
-  { id: "calm", name: "Calm Presenter", description: "Clear and reassuring", icon: Mic2 },
-];
-
-const pad = (n: number) => String(n).padStart(2, "0");
-
-function TimeUnit({ value, onStep }: { value: number; onStep: (d: number) => void }) {
-  return (
-    <div className="flex flex-col items-center">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => onStep(1)}
-        aria-label="Increase"
-        className="mb-1 size-7 rounded-full bg-card/60 text-ink/40 ring-1 ring-card/70 hover:bg-card/80"
-      >
-        <ChevronUp className="size-4" />
-      </Button>
-      <div className="grid size-20 place-items-center rounded-2xl bg-card/70 ring-1 ring-card/70">
-        <span className="font-display text-5xl font-semibold leading-none tabular-nums">{pad(value)}</span>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => onStep(-1)}
-        aria-label="Decrease"
-        className="mt-1 size-7 rounded-full bg-card/60 text-ink/40 ring-1 ring-card/70 hover:bg-card/80"
-      >
-        <ChevronDown className="size-4" />
-      </Button>
-    </div>
-  );
-}
-
-function Index() {
-  const [screen, setScreen] = useState<Screen>("main");
-  const [hour, setHour] = useState(7);
-  const [minute, setMinute] = useState(30);
-  const [voice, setVoice] = useState<VoiceId>("warm");
-  const [saved, setSaved] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [audioStatus, setAudioStatus] = useState<AudioStatus>("idle");
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUrlRef = useRef<string | null>(null);
-  const requestRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
+  // 1. Audio Recording Handler
+  const startRecording = async () => {
+    audioChunksRef.current = [];
     try {
-      const raw = localStorage.getItem("wakeup-alarm");
-      if (raw) {
-        const a = JSON.parse(raw);
-        if (typeof a.hour === "number") setHour(a.hour);
-        if (typeof a.minute === "number") setMinute(a.minute);
-        if (a.voice === "warm" || a.voice === "energetic" || a.voice === "calm") {
-          setVoice(a.voice);
-        }
-      }
-    } catch {}
-  }, []);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current.ondataavailable = (e) => audioChunksRef.current.push(e.data);
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
+        setAudioUrl(URL.createObjectURL(audioBlob));
+      };
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      alert("Microphone access is required to record custom alarms.");
+    }
+  };
 
-  const stopAudio = () => {
-    requestRef.current?.abort();
-    requestRef.current = null;
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current = null;
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
-    if (audioUrlRef.current) {
-      URL.revokeObjectURL(audioUrlRef.current);
-      audioUrlRef.current = null;
+  };
+
+  // 2. Alarm Trigger & Call Timer
+  const triggerAlarm = () => {
+    setIsAlarmActive(true);
+  };
+
+  const handleAnswer = () => {
+    setIsAlarmActive(false);
+    setInCall(true);
+
+    if (selectedSoundType === 'recorded' && audioUrl) {
+      playbackAudioRef.current = new Audio(audioUrl);
+      playbackAudioRef.current.play();
+    } else {
+      const natureUrls: Record<string, string> = {
+        birds: 'https://actions.google.com/sounds/v1/ambiences/outdoor_birds.ogg',
+        rain: 'https://actions.google.com/sounds/v1/weather/rain_heavy.ogg'
+      };
+      playbackAudioRef.current = new Audio(natureUrls[natureSound] || natureUrls.birds);
+      playbackAudioRef.current.play();
     }
+  };
+
+  const handleHangUp = () => {
+    if (playbackAudioRef.current) {
+      playbackAudioRef.current.pause();
+    }
+    setInCall(false);
+    setCallDuration(0);
   };
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      stopAudio();
-    };
-  }, []);
-
-  const generateVoice = async () => {
-    stopAudio();
-    setAudioStatus("generating");
-    const controller = new AbortController();
-    requestRef.current = controller;
-
-    try {
-      const response = await fetch("/api/elevenlabs/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hour, minute, voice }),
-        signal: controller.signal,
-      });
-      if (!response.ok) throw new Error("Voice generation failed");
-
-      const audioUrl = URL.createObjectURL(await response.blob());
-      audioUrlRef.current = audioUrl;
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audio.onplay = () => setAudioStatus("playing");
-      audio.onended = () => setAudioStatus("idle");
-      audio.onerror = () => setAudioStatus("error");
-      await audio.play();
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setAudioStatus("error");
-    } finally {
-      if (requestRef.current === controller) requestRef.current = null;
+    let timer: NodeJS.Timeout;
+    if (inCall) {
+      timer = setInterval(() => setCallDuration((prev) => prev + 1), 1000);
     }
-  };
-
-  const startCall = () => {
-    setScreen("incall");
-    setElapsed(0);
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setElapsed((value) => value + 1), 1000);
-    void generateVoice();
-  };
-
-  const endCall = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = null;
-    stopAudio();
-    setAudioStatus("idle");
-    setScreen("main");
-  };
-
-  const saveAlarm = () => {
-    localStorage.setItem("wakeup-alarm", JSON.stringify({ hour, minute, voice }));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  const stepHour = (d: number) => setHour((h) => (h + d + 24) % 24);
-  const stepMinute = (d: number) => setMinute((m) => (m + d + 60) % 60);
+    return () => clearInterval(timer);
+  }, [inCall]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-b from-[#cfe0ff] via-[#e8f0ff] to-[#f7f9ff] font-sans text-ink">
-      {/* MAIN SCREEN */}
-      <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col px-6 pb-8 pt-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="grid size-9 place-items-center rounded-xl bg-brand text-primary-foreground ring-1 ring-card/40">
-              <span className="font-display text-sm font-semibold">W</span>
-            </div>
-            <span className="font-display text-lg font-semibold tracking-tight">WakeUp AI</span>
-          </div>
-          <span className="rounded-full bg-card/50 px-3 py-1 text-xs font-medium text-brand-deep ring-1 ring-card/60 backdrop-blur-md">
-            Morning Call
-          </span>
-        </div>
+    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4">
+      
+      {/* SCREEN 1: MAIN SETUP */}
+      {!isAlarmActive && !inCall && (
+        <div className="w-full max-w-md bg-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
+          <h1 className="text-2xl font-bold text-center">WakeUp App ($0 API Cost)</h1>
 
-        <div className="mt-7">
-          <p className="text-sm font-medium text-ink/50">Your morning starts with a friendly call</p>
-          <h1 className="mt-1 font-display text-3xl font-semibold leading-tight tracking-tight text-balance">
-            Wake up to a <span className="text-brand">phone call</span>
-          </h1>
-        </div>
-
-        {/* time picker */}
-        <div className="mt-6 rounded-3xl bg-card/45 p-5 ring-1 ring-card/60 backdrop-blur-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-[0.15em] text-ink/40">Alarm Time</span>
-            <span className="text-xs font-medium text-brand-deep">Repeats daily</span>
+          {/* Time Picker */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Set Alarm Time</label>
+            <input
+              type="time"
+              value={alarmTime}
+              onChange={(e) => setAlarmTime(e.target.value)}
+              className="w-full bg-slate-700 text-3xl text-center p-3 rounded-xl border border-slate-600 font-mono"
+            />
           </div>
-          <div className="mt-4 flex items-end justify-center gap-3">
-            <TimeUnit value={hour} onStep={stepHour} />
-            <span className="pb-5 font-display text-4xl font-semibold text-brand">:</span>
-            <TimeUnit value={minute} onStep={stepMinute} />
-          </div>
-        </div>
 
-        {/* voice selector */}
-        <div className="mt-5">
-          <span className="text-xs font-semibold uppercase tracking-[0.15em] text-ink/40">Voice</span>
-          <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Voice selector">
-            {VOICES.map((option) => {
-              const Icon = option.icon;
-              const selected = voice === option.id;
-              return (
-                <Button
-                  key={option.id}
-                  type="button"
-                  variant="ghost"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => setVoice(option.id)}
-                  className={`relative h-28 min-w-0 flex-col whitespace-normal rounded-xl px-2 py-3 text-center ring-1 ${
-                    selected
-                      ? "bg-brand text-primary-foreground ring-brand"
-                      : "bg-card/50 text-ink ring-card/70 hover:bg-card/75"
-                  }`}
+          {/* Sound Type Selection */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Alarm Sound Source</label>
+            <select
+              value={selectedSoundType}
+              onChange={(e) => setSelectedSoundType(e.target.value as 'recorded' | 'nature')}
+              className="w-full bg-slate-700 p-3 rounded-xl border border-slate-600"
+            >
+              <option value="recorded">Record Custom Voice / Friend Note</option>
+              <option value="nature">Nature Ambient Sound</option>
+            </select>
+          </div>
+
+          {/* Recorder Component */}
+          {selectedSoundType === 'recorded' && (
+            <div className="p-4 bg-slate-700/50 rounded-xl space-y-3 text-center">
+              <p className="text-xs text-slate-400">Record a 10s wake-up message</p>
+              {!isRecording ? (
+                <button
+                  onClick={startRecording}
+                  className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
                 >
-                  {selected && <Check className="absolute right-2 top-2 size-3.5" />}
-                  <Icon className="size-5" />
-                  <span className="text-xs font-semibold leading-tight">{option.name}</span>
-                  <span className={`text-[10px] font-normal leading-tight ${selected ? "text-primary-foreground/70" : "text-ink/45"}`}>
-                    {option.description}
-                  </span>
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        <Button
-          onClick={saveAlarm}
-          className="mt-5 h-auto w-full rounded-2xl bg-ink py-4 text-sm font-semibold text-primary-foreground ring-1 ring-ink/10 hover:bg-ink/90"
-        >
-          {saved ? `Saved · ${pad(hour)}:${pad(minute)}` : "Save Alarm"}
-        </Button>
-
-        <Button
-          variant="ghost"
-          onClick={() => setScreen("incoming")}
-          className="mt-5 h-auto w-full rounded-2xl bg-card/50 py-4 text-sm font-semibold text-brand-deep ring-1 ring-card/60 backdrop-blur-md hover:bg-card/70"
-        >
-          <span className="relative grid size-5 place-items-center">
-            <span className="absolute inset-0 rounded-full bg-brand/40 animate-ripple" />
-            <Phone className="relative size-4 text-brand" />
-          </span>
-          Test Incoming Call
-        </Button>
-      </div>
-
-      {/* INCOMING CALL / IN-CALL OVERLAY */}
-      {screen !== "main" && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-[#0b1220] via-[#111c33] to-[#0a0f1c] text-primary-foreground animate-slide-up">
-          <div className="flex items-center justify-between px-7 pt-5 text-xs font-medium text-primary-foreground/70">
-            <span>{pad(hour)}:{pad(minute)}</span>
-            <span className="flex items-center gap-1.5">
-              <span>5G</span>
-              <span>100%</span>
-            </span>
-          </div>
-
-          <div className="flex flex-1 flex-col items-center justify-center px-8">
-            <div className="relative grid place-items-center">
-              <span className="absolute size-28 rounded-full bg-brand/40 animate-pulse-ring" />
-              <span className="absolute size-28 rounded-full bg-brand/40 animate-pulse-ring-2" />
-              <div className="relative grid size-28 place-items-center rounded-full bg-gradient-to-br from-brand to-brand-deep ring-1 ring-white/30">
-                <span className="font-display text-4xl font-semibold">AI</span>
-              </div>
-            </div>
-            <p className="mt-8 text-sm font-medium uppercase tracking-[0.2em] text-primary-foreground/60">
-              {screen === "incoming" ? "Incoming Call — AI Morning Call" : "AI Morning Call"}
-            </p>
-            <h2 className="mt-2 font-display text-3xl font-semibold">WakeUp AI</h2>
-            {screen === "incall" && (
-              <p className="mt-1 text-sm text-primary-foreground/60">
-                In Call ({pad(Math.floor(elapsed / 60))}:{pad(elapsed % 60)})
-              </p>
-            )}
-          </div>
-
-          {screen === "incoming" ? (
-            <div className="flex flex-col items-center gap-10 px-8 pb-16">
-              <div className="flex items-center gap-20">
-                <div className="flex flex-col items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={startCall}
-                    aria-label="Answer call"
-                    className="size-16 rounded-full bg-accept text-primary-foreground ring-1 ring-accept/40 hover:scale-105 hover:bg-accept"
-                  >
-                    <Phone className="size-6" />
-                  </Button>
-                  <span className="text-xs font-medium text-primary-foreground/70">Answer</span>
-                </div>
-                <div className="flex flex-col items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={endCall}
-                    aria-label="Decline call"
-                    className="size-16 rounded-full bg-decline text-primary-foreground ring-1 ring-decline/40 hover:scale-105 hover:bg-decline"
-                  >
-                    <X className="size-6" />
-                  </Button>
-                  <span className="text-xs font-medium text-primary-foreground/70">Decline</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-6 px-8 pb-16">
-              <div className="flex min-h-12 items-center justify-center text-center text-sm text-primary-foreground/65" aria-live="polite">
-                {audioStatus === "generating" && (
-                  <span className="flex items-center gap-2"><LoaderCircle className="size-4 animate-spin" />Preparing your morning voice...</span>
-                )}
-                {audioStatus === "playing" && <span>Your morning message is playing</span>}
-                {audioStatus === "idle" && <span>Morning message complete</span>}
-                {audioStatus === "error" && (
-                  <span className="flex flex-col items-center gap-2">
-                    Voice generation was interrupted.
-                    <Button variant="ghost" onClick={() => void generateVoice()} className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
-                      <RefreshCw className="size-4" /> Try Again
-                    </Button>
-                  </span>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                onClick={endCall}
-                className="h-auto rounded-full bg-decline px-8 py-3.5 text-sm font-semibold text-primary-foreground ring-1 ring-decline/40 hover:scale-105 hover:bg-decline"
-              >
-                <PhoneOff className="size-4" />
-                Hang Up
-              </Button>
+                  🎙️ Start Recording
+                </button>
+              ) : (
+                <button
+                  onClick={stopRecording}
+                  className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg text-sm font-medium animate-pulse"
+                >
+                  ⏹️ Stop Recording
+                </button>
+              )}
+              {audioUrl && <p className="text-xs text-green-400">✓ Recording Saved!</p>}
             </div>
           )}
+
+          {/* Nature Sound Component */}
+          {selectedSoundType === 'nature' && (
+            <div>
+              <select
+                value={natureSound}
+                onChange={(e) => setNatureSound(e.target.value)}
+                className="w-full bg-slate-700 p-3 rounded-xl border border-slate-600"
+              >
+                <option value="birds">Morning Birds</option>
+                <option value="rain">Gentle Rain</option>
+              </select>
+            </div>
+          )}
+
+          {/* Test Alarm Trigger */}
+          <button
+            onClick={triggerAlarm}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 p-4 rounded-xl font-bold text-lg transition"
+          >
+            Save & Test Alarm Call
+          </button>
+        </div>
+      )}
+
+      {/* SCREEN 2: INCOMING CALL UI */}
+      {isAlarmActive && (
+        <div className="w-full max-w-md h-[600px] bg-slate-950 rounded-3xl p-8 flex flex-col justify-between items-center text-center shadow-2xl border border-slate-800">
+          <div className="mt-12 space-y-2">
+            <div className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center mx-auto text-3xl animate-bounce">
+              ⏰
+            </div>
+            <h2 className="text-2xl font-bold mt-4">Morning Alarm Call</h2>
+            <p className="text-slate-400 text-sm">Wake up! Incoming sound call...</p>
+          </div>
+
+          <div className="w-full flex justify-around mb-8">
+            <button
+              onClick={() => setIsAlarmActive(false)}
+              className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center text-2xl shadow-lg hover:scale-105 transition"
+            >
+              🛑
+            </button>
+            <button
+              onClick={handleAnswer}
+              className="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center text-2xl shadow-lg hover:scale-105 transition animate-pulse"
+            >
+              📞
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* SCREEN 3: ACTIVE CALL UI */}
+      {inCall && (
+        <div className="w-full max-w-md h-[600px] bg-slate-950 rounded-3xl p-8 flex flex-col justify-between items-center text-center shadow-2xl border border-slate-800">
+          <div className="mt-12 space-y-2">
+            <div className="w-24 h-24 bg-green-600/20 border-2 border-green-500 rounded-full flex items-center justify-center mx-auto text-3xl">
+              🗣️
+            </div>
+            <h2 className="text-2xl font-bold mt-4">In Call</h2>
+            <p className="text-green-400 font-mono text-sm">
+              00:{callDuration < 10 ? `0${callDuration}` : callDuration}
+            </p>
+          </div>
+
+          <button
+            onClick={handleHangUp}
+            className="w-full bg-red-600 hover:bg-red-500 p-4 rounded-xl font-bold text-lg mb-8"
+          >
+            End Call
+          </button>
         </div>
       )}
     </div>
