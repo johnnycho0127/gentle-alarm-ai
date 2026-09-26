@@ -50,10 +50,10 @@ function Index() {
   const [screen, setScreen] = useState<Screen>("main");
   const [hour, setHour] = useState(7);
   const [minute, setMinute] = useState(30);
-  const [tone, setTone] = useState<Tone>("friend");
   const [saved, setSaved] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     try {
@@ -62,48 +62,45 @@ function Index() {
         const a = JSON.parse(raw);
         if (typeof a.hour === "number") setHour(a.hour);
         if (typeof a.minute === "number") setMinute(a.minute);
-        if (a.tone) setTone(a.tone);
       }
     } catch {}
   }, []);
 
+  const stopBirds = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      window.speechSynthesis?.cancel();
+      stopBirds();
     };
   }, []);
-
-  const speak = (t: Tone) => {
-    const cfg = TONES.find((x) => x.id === t)!;
-    window.speechSynthesis?.cancel();
-    const u = new SpeechSynthesisUtterance(cfg.message);
-    u.lang = "en-US";
-    u.pitch = cfg.pitch;
-    u.rate = cfg.rate;
-    const enVoice = window.speechSynthesis
-      ?.getVoices()
-      .find((v) => v.lang.startsWith("en"));
-    if (enVoice) u.voice = enVoice;
-    window.speechSynthesis?.speak(u);
-  };
 
   const startCall = () => {
     setScreen("incall");
     setElapsed(0);
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
-    speak(tone);
+    const audio = new Audio(BIRDS_URL);
+    audio.loop = true;
+    audio.volume = 0.9;
+    audioRef.current = audio;
+    audio.play().catch(() => {});
   };
 
   const endCall = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
-    window.speechSynthesis?.cancel();
+    stopBirds();
     setScreen("main");
   };
 
   const saveAlarm = () => {
-    localStorage.setItem("wakeup-alarm", JSON.stringify({ hour, minute, tone }));
+    localStorage.setItem("wakeup-alarm", JSON.stringify({ hour, minute }));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
