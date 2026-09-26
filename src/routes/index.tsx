@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Phone, PhoneOff, X } from "lucide-react";
+import { Bird, ChevronDown, ChevronUp, Phone, PhoneOff, X } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -236,7 +236,7 @@ function Index() {
           ) : (
             <div className="flex flex-col items-center gap-6 px-8 pb-16">
               <p className="max-w-xs text-center text-sm leading-relaxed text-white/60">
-                "{TONES.find((t) => t.id === tone)!.message}"
+                Good morning! The birds are singing — time to rise and shine.
               </p>
               <button
                 onClick={endCall}
